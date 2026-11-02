@@ -5,26 +5,82 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#102b50">
-<title>IIPEA Connect</title>
+<title>Connexion - IIPEA Connect</title>
 <style>
 *{box-sizing:border-box}
-body{margin:0;font-family:Arial,sans-serif;background:#f3f6fb;color:#17243a}
-header{background:#102b50;color:white;padding:22px 18px}
-header h1{margin:0;font-size:25px}
+body{
+ margin:0;
+ font-family:Arial,sans-serif;
+ background:#f1f5fa;
+ color:#17243a;
+ min-height:100vh;
+ display:flex;
+ flex-direction:column;
+}
+header{
+ background:#102b50;
+ color:white;
+ padding:22px;
+ text-align:center;
+}
+header h1{margin:0;font-size:26px}
 header p{margin:7px 0 0;color:#d6e3f5}
-nav{display:flex;gap:9px;overflow:auto;padding:13px;background:white;position:sticky;top:0}
-nav button{border:0;border-radius:20px;padding:11px 15px;background:#eaf0f8;color:#102b50;font-weight:bold;white-space:nowrap}
-nav button.active{background:#102b50;color:white}
-main{max-width:850px;margin:auto;padding:18px}
-section{display:none}
-section.active{display:block}
-.welcome{background:#173d6b;color:white;padding:23px;border-radius:17px;margin-bottom:18px}
-.welcome h2{margin:0 0 8px}
-.card{background:white;padding:17px;border-radius:14px;margin:12px 0;box-shadow:0 3px 12px #17243a0c}
-.card h3{margin:0 0 9px;color:#173d6b}
-.tag{display:inline-block;background:#eaf1fa;color:#173d6b;padding:6px 10px;border-radius:20px;font-size:12px}
-.muted{color:#65748a;line-height:1.5}
-footer{text-align:center;padding:25px;color:#65748a;font-size:13px}
+main{
+ flex:1;
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ padding:25px 16px;
+}
+.login{
+ background:white;
+ width:100%;
+ max-width:420px;
+ padding:30px 24px;
+ border-radius:18px;
+ box-shadow:0 8px 30px #102b5015;
+}
+.logo{
+ width:65px;
+ height:65px;
+ margin:0 auto 15px;
+ border-radius:18px;
+ background:#102b50;
+ color:white;
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ font-size:25px;
+ font-weight:bold;
+}
+h2{text-align:center;margin:0 0 8px;color:#102b50}
+.subtitle{text-align:center;color:#718096;font-size:14px;margin-bottom:28px}
+label{display:block;font-weight:bold;font-size:14px;margin:17px 0 8px}
+input{
+ width:100%;
+ padding:14px;
+ border:1px solid #d5deea;
+ border-radius:9px;
+ font-size:15px;
+ outline:none;
+}
+input:focus{border-color:#245b94}
+button{
+ width:100%;
+ padding:15px;
+ margin-top:24px;
+ border:0;
+ border-radius:9px;
+ background:#102b50;
+ color:white;
+ font-size:16px;
+ font-weight:bold;
+ cursor:pointer;
+}
+button:hover{background:#1b4677}
+.help{text-align:center;margin-top:20px;font-size:13px;color:#53657b}
+footer{text-align:center;padding:20px;color:#718096;font-size:12px}
+#message{font-size:13px;text-align:center;margin-top:15px;color:#b45309}
 </style>
 </head>
 <body>
@@ -33,87 +89,37 @@ footer{text-align:center;padding:25px;color:#65748a;font-size:13px}
 <p>Votre espace numérique étudiant</p>
 </header>
 
-<nav>
-<button class="active" onclick="showPage('accueil',this)">Accueil</button>
-<button onclick="showPage('cours',this)">Mes cours</button>
-<button onclick="showPage('planning',this)">Emploi du temps</button>
-<button onclick="showPage('actualites',this)">Actualités</button>
-</nav>
-
 <main>
-<section id="accueil" class="active">
-<div class="welcome">
-<h2>Bienvenue sur IIPEA Connect !</h2>
-<p>Votre campus, vos cours et vos informations au même endroit.</p>
-</div>
-<div class="card">
-<h3>🎓 Espace étudiant</h3>
-<p class="muted">Retrouvez ici les rubriques essentielles de votre vie universitaire à l'IIPEA.</p>
-</div>
-<div class="card">
-<h3>📚 Mes cours</h3>
-<p class="muted">Accédez aux matières de votre formation.</p>
-</div>
-<div class="card">
-<h3>📅 Mon emploi du temps</h3>
-<p class="muted">Consultez les informations de planning publiées par votre établissement.</p>
-</div>
-</section>
+<div class="login">
+<div class="logo">I</div>
+<h2>Bienvenue !</h2>
+<p class="subtitle">Connectez-vous à votre espace étudiant</p>
 
-<section id="cours">
-<h2>Mes cours</h2>
-<div class="card">
-<span class="tag">Réseaux informatiques</span>
-<h3>Architecture des ordinateurs</h3>
-<p class="muted">Découvrez les composants et le fonctionnement d'un ordinateur.</p>
-</div>
-<div class="card">
-<span class="tag">Réseaux informatiques</span>
-<h3>Bases des réseaux</h3>
-<p class="muted">Introduction aux modèles OSI et TCP/IP et à l'adressage IPv4.</p>
-</div>
-<div class="card">
-<span class="tag">Systèmes</span>
-<h3>Administration système</h3>
-<p class="muted">Initiation à l'administration des environnements Linux et Windows.</p>
-</div>
-</section>
+<form id="loginForm">
+<label for="email">Adresse e-mail</label>
+<input type="email" id="email" placeholder="exemple@email.com" required>
 
-<section id="planning">
-<h2>Emploi du temps</h2>
-<div class="card">
-<h3>📅 Planning universitaire</h3>
-<p class="muted">Aucun emploi du temps officiel n'a encore été ajouté. Les horaires seront affichés ici lorsqu'ils seront communiqués par l'établissement.</p>
-</div>
-</section>
+<label for="password">Mot de passe</label>
+<input type="password" id="password" placeholder="Votre mot de passe" required>
 
-<section id="actualites">
-<h2>Actualités et annonces</h2>
-<div class="card">
-<h3>Bienvenue sur IIPEA Connect</h3>
-<p class="muted">Cet espace est destiné à centraliser les informations utiles aux étudiants.</p>
-<span class="tag">Message de démonstration</span>
+<button type="submit">Se connecter</button>
+<p id="message"></p>
+</form>
+
+<p class="help">Besoin d'aide ? Contactez l'administration de votre établissement.</p>
 </div>
-<div class="card">
-<h3>Informations universitaires</h3>
-<p class="muted">Les annonces officielles seront publiées ici après configuration de la plateforme.</p>
-<span class="tag">Exemple</span>
-</div>
-</section>
 </main>
 
 <footer>
-IIPEA Connect · Projet étudiant indépendant
+IIPEA Connect · Espace étudiant
 </footer>
 
 <script>
-function showPage(id,button){
-document.querySelectorAll('main section').forEach(s=>s.classList.remove('active'));
-document.getElementById(id).classList.add('active');
-document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
-button.classList.add('active');
-window.scrollTo(0,0);
-}
+document.getElementById("loginForm").addEventListener("submit",function(event){
+ event.preventDefault();
+ document.getElementById("message").textContent =
+ "La connexion sera disponible après la configuration du système sécurisé.";
+});
 </script>
 </body>
 </html>
