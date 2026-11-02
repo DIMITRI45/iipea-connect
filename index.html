@@ -1,3 +1,16 @@
+Parfait \! Voici le nouveau code complet de `index.html`, avec la gestion des cours PDF et des annonces.
+
+Il conserve les fonctionnalités précédentes et ajoute :
+
+- La publication des annonces par l'administrateur.
+- L'affichage des annonces publiées chez les étudiants.
+- La suppression des annonces par l'administrateur.
+
+Sur GitHub : appuie sur le crayon, sélectionne tout l'ancien code et remplace-le par celui-ci.
+
+HTMLActiver le retour à la ligneCopier le codePrévisualiser
+
+```html
 
 <!DOCTYPE html>
 <html lang="fr">
@@ -19,8 +32,7 @@ nav button{background:#e5efff;color:#123b72}
 .hidden{display:none}
 h2{color:#123b72}
 #message{padding:10px;color:#b91c1c}
-.course{border:1px solid #dbeafe;padding:15px;border-radius:10px;margin:12px 0}
-.course a{color:#1556a0;font-weight:bold}
+.course,.announcement{border:1px solid #dbeafe;padding:15px;border-radius:10px;margin:12px 0}
 </style>
 </head>
 <body>
@@ -81,7 +93,7 @@ h2{color:#123b72}
 
 <section id="courses" class="card hidden">
 <h2>Mes cours</h2>
-<div id="courseList">Chargement des cours...</div>
+<div id="courseList">Chargement...</div>
 </section>
 
 <section id="schedule" class="card hidden">
@@ -95,20 +107,31 @@ h2{color:#123b72}
 </section>
 
 <section id="announcements" class="card hidden">
-<h2>Annonces</h2>
-<p>Aucune donnée disponible pour le moment.</p>
+<h2>Annonces et communiqués</h2>
+<div id="announcementList">Chargement...</div>
 </section>
 
 <section id="admin" class="card hidden">
 <h2>Espace administrateur</h2>
-<p>Gestion des supports de cours</p>
+
+<h3>Publier un cours PDF</h3>
 <input id="courseTitle" placeholder="Titre du cours">
 <input id="courseSubject" placeholder="Matière">
 <textarea id="courseDescription" placeholder="Description du cours"></textarea>
-<label for="courseFile">Choisir un fichier PDF</label>
 <input id="courseFile" type="file" accept="application/pdf">
 <button onclick="uploadCourse()">Publier le cours</button>
 <p id="uploadMessage"></p>
+
+<hr>
+<h3>Publier une annonce</h3>
+<input id="announcementTitle" placeholder="Titre de l'annonce">
+<textarea id="announcementContent" placeholder="Contenu de l'annonce"></textarea>
+<button onclick="publishAnnouncement()">Publier l'annonce</button>
+<p id="announcementMessage"></p>
+
+<hr>
+<h3>Gérer les annonces</h3>
+<div id="adminAnnouncementList">Chargement...</div>
 </section>
 </div>
 <div id="message"></div>
@@ -136,9 +159,7 @@ async function signup(){
  });
  if(error){message(error.message);return;}
  if(data.user&&data.session){
-  const {error:e}=await db.from("profiles").upsert({
-   id:data.user.id,full_name
-  });
+  const {error:e}=await db.from("profiles").upsert({id:data.user.id,full_name});
   if(e)message(e.message);
   else message("Compte créé avec succès.");
  }else message("Vérifie ta boîte e-mail pour confirmer ton inscription.");
@@ -162,9 +183,7 @@ async function resetPassword(){
 async function loadDashboard(user){
  if(!user)return;
  currentUser=user;
- const {data:profile}=await db.from("profiles")
-  .select("full_name").eq("id",user.id).maybeSingle();
-
+ const {data:profile}=await db.from("profiles").select("full_name").eq("id",user.id).maybeSingle();
  document.getElementById("auth").classList.add("hidden");
  document.getElementById("dashboard").classList.remove("hidden");
  document.getElementById("welcome").textContent="Bienvenue "+(profile?.full_name||user.email);
@@ -177,6 +196,8 @@ async function loadDashboard(user){
  document.getElementById("adminButton").classList.toggle("hidden",!isAdmin);
  document.getElementById("admin").classList.add("hidden");
  await loadCourses();
+ await loadAnnouncements();
+ await loadAdminAnnouncements();
  showSection("home");
 }
 
@@ -186,39 +207,31 @@ function showSection(id){
   document.getElementById(s).classList.toggle("hidden",s!==id);
  });
  if(id==="courses")loadCourses();
+ if(id==="announcements")loadAnnouncements();
+ if(id==="admin")loadAdminAnnouncements();
 }
 
 async function uploadCourse(){
- if(!isAdmin){message("Accès refusé.");return;}
+ if(!isAdmin)return;
  const title=document.getElementById("courseTitle").value.trim();
  const subject=document.getElementById("courseSubject").value.trim();
  const description=document.getElementById("courseDescription").value.trim();
  const file=document.getElementById("courseFile").files[0];
  const status=document.getElementById("uploadMessage");
-
- if(!title||!subject||!file){status.textContent="Remplis le titre, la matière et choisis un PDF.";return;}
- if(file.type!=="application/pdf"){status.textContent="Seuls les fichiers PDF sont autorisés.";return;}
- if(file.size>20*1024*1024){status.textContent="Le fichier dépasse la limite de 20 MB.";return;}
-
+ if(!title||!subject||!file){status.textContent="Remplis tous les champs obligatoires.";return;}
+ if(file.type!=="application/pdf"){status.textContent="Choisis un fichier PDF.";return;}
+ if(file.size>20*1024*1024){status.textContent="Fichier trop volumineux (20 MB maximum).";return;}
  status.textContent="Importation en cours...";
  const safeName=file.name.replace(/[^a-zA-Z0-9._-]/g,"_");
  const path=currentUser.id+"/"+Date.now()+"_"+safeName;
-
- const {error:uploadError}=await db.storage.from("cours-pdf").upload(path,file,{
-  contentType:"application/pdf",
-  upsert:false
- });
+ const {error:uploadError}=await db.storage.from("cours-pdf").upload(path,file,{contentType:"application/pdf"});
  if(uploadError){status.textContent=uploadError.message;return;}
-
- const {error:insertError}=await db.from("courses").insert({
-  title,subject,description,file_path:path
- });
+ const {error:insertError}=await db.from("courses").insert({title,subject,description,file_path:path});
  if(insertError){
   await db.storage.from("cours-pdf").remove([path]);
   status.textContent=insertError.message;
   return;
  }
-
  status.textContent="Cours publié avec succès !";
  document.getElementById("courseTitle").value="";
  document.getElementById("courseSubject").value="";
@@ -230,29 +243,20 @@ async function uploadCourse(){
 async function loadCourses(){
  const list=document.getElementById("courseList");
  list.textContent="Chargement des cours...";
- const {data,error}=await db.from("courses")
-  .select("id,title,subject,description,file_path,created_at")
-  .order("created_at",{ascending:false});
-
+ const {data,error}=await db.from("courses").select("id,title,subject,description,file_path,created_at").order("created_at",{ascending:false});
  if(error){list.textContent="Erreur : "+error.message;return;}
- if(!data||data.length===0){list.textContent="Aucun cours publié pour le moment.";return;}
-
+ if(!data||!data.length){list.textContent="Aucun cours publié pour le moment.";return;}
  list.innerHTML="";
- for(const course of data){
+ data.forEach(course=>{
   const item=document.createElement("div");
   item.className="course";
-  const title=document.createElement("h3");
-  title.textContent=course.title;
-  const subject=document.createElement("p");
-  subject.textContent="Matière : "+course.subject;
-  const description=document.createElement("p");
-  description.textContent=course.description||"";
-  const link=document.createElement("button");
-  link.textContent="Consulter le PDF";
+  const title=document.createElement("h3");title.textContent=course.title;
+  const subject=document.createElement("p");subject.textContent="Matière : "+course.subject;
+  const description=document.createElement("p");description.textContent=course.description||"";
+  const link=document.createElement("button");link.textContent="Consulter le PDF";
   link.onclick=()=>openCourse(course.file_path);
-  item.append(title,subject,description,link);
-  list.appendChild(item);
- }
+  item.append(title,subject,description,link);list.appendChild(item);
+ });
 }
 
 async function openCourse(path){
@@ -261,25 +265,24 @@ async function openCourse(path){
  window.open(data.signedUrl,"_blank");
 }
 
-async function logout(){
- await db.auth.signOut();
- currentUser=null;
- isAdmin=false;
- document.getElementById("dashboard").classList.add("hidden");
- document.getElementById("auth").classList.remove("hidden");
- message("Déconnexion réussie.");
+async function publishAnnouncement(){
+ if(!isAdmin)return;
+ const title=document.getElementById("announcementTitle").value.trim();
+ const content=document.getElementById("announcementContent").value.trim();
+ const status=document.getElementById("announcementMessage");
+ if(!title||!content){status.textContent="Remplis le titre et le contenu.";return;}
+ status.textContent="Publication en cours...";
+ const {error}=await db.from("announcements").insert({title,content,published:true});
+ if(error){status.textContent=error.message;return;}
+ status.textContent="Annonce publiée avec succès !";
+ document.getElementById("announcementTitle").value="";
+ document.getElementById("announcementContent").value="";
+ await loadAnnouncements();
+ await loadAdminAnnouncements();
 }
 
-db.auth.onAuthStateChange((event,session)=>{
- if(session?.user){
-  loadDashboard(session.user);
- }else{
-  currentUser=null;
-  isAdmin=false;
-  document.getElementById("dashboard").classList.add("hidden");
-  document.getElementById("auth").classList.remove("hidden");
- }
-});
-</script>
-</body>
-</html>
+async function loadAnnouncements(){
+ const list=document.getElementById("announcementList");
+ list.textContent="Chargement des annonces...";
+ const {data,error}=await db.from("announcements").select("id,title,content,created_at").eq("published",true
+```
