@@ -2,250 +2,254 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>IIPEA Connect</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <style>
-    * { box-sizing: border-box; }
-    body {
-      margin: 0; min-height: 100vh; display: grid;
-      place-items: center; padding: 20px;
-      font-family: Arial, sans-serif;
-      background: linear-gradient(135deg, #102b50, #176b87);
-    }
-    .card {
-      width: 100%; max-width: 410px; background: white;
-      padding: 28px; border-radius: 18px;
-      box-shadow: 0 12px 35px #0003;
-    }
-    h1, h2 { color: #12345a; text-align: center; }
-    p { color: #64748b; text-align: center; }
-    input, button {
-      width: 100%; padding: 14px; margin-top: 12px;
-      border-radius: 9px; font-size: 16px;
-    }
-    input { border: 1px solid #cbd5e1; }
-    button {
-      border: 0; background: #145b83; color: white;
-      font-weight: bold; cursor: pointer;
-    }
-    button.secondary { background: #e8eef4; color: #12345a; }
-    .link {
-      display: block; margin-top: 16px; text-align: center;
-      color: #145b83; cursor: pointer; text-decoration: underline;
-    }
-    #message { font-size: 14px; margin-top: 15px; }
-    #dashboard, #resetSection, #forgotSection { display: none; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IIPEA Connect</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,sans-serif;background:#f1f5f9;color:#172b4d}
+button,input{font:inherit}
+button{cursor:pointer}
+.auth-card{max-width:420px;margin:45px auto;background:white;padding:25px;border-radius:18px;box-shadow:0 8px 25px #0002}
+h1,h2{color:#12345a}
+.center{text-align:center}
+input{width:100%;padding:13px;margin:9px 0;border:1px solid #cbd5e1;border-radius:8px}
+.btn{width:100%;padding:13px;margin-top:10px;border:0;border-radius:8px;background:#145b83;color:white;font-weight:bold}
+.secondary{background:#e8eef4;color:#12345a}
+.link{display:block;text-align:center;margin:17px;color:#145b83;text-decoration:underline;cursor:pointer}
+#message{text-align:center;color:#b42318;font-size:14px}
+#app{display:none;min-height:100vh}
+header{background:#12345a;color:white;padding:17px 20px;display:flex;justify-content:space-between;align-items:center;gap:12px}
+header h2{color:white;margin:0;font-size:20px}
+header span{font-size:12px}
+.layout{display:flex;min-height:calc(100vh - 65px)}
+nav{width:230px;background:white;padding:15px;box-shadow:2px 0 10px #0001}
+nav button{display:block;width:100%;padding:14px;text-align:left;border:0;background:white;border-radius:8px;margin:5px 0;color:#12345a}
+nav button.active,nav button:hover{background:#e4eff8;font-weight:bold}
+main{flex:1;padding:25px;min-width:0}
+.welcome{background:linear-gradient(120deg,#145b83,#267ca0);color:white;padding:25px;border-radius:15px;margin-bottom:22px}
+.welcome h1{color:white;margin-top:0}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px}
+.tile{background:white;padding:20px;border-radius:13px;box-shadow:0 3px 12px #0001;min-height:125px}
+.tile h3{color:#145b83;margin-top:5px}
+.tile button{border:0;background:none;color:#145b83;font-weight:bold;padding:8px 0}
+.panel{background:white;padding:22px;border-radius:13px;min-height:180px}
+.muted{color:#64748b}
+@media(max-width:650px){
+ .layout{display:block}
+ nav{width:100%;display:grid;grid-template-columns:repeat(2,1fr);gap:5px}
+ nav button{font-size:13px;padding:11px}
+ main{padding:15px}
+ .grid{grid-template-columns:1fr}
+ header{flex-wrap:wrap}
+}
+</style>
 </head>
 <body>
-  <main class="card">
-    <h1>IIPEA Connect</h1>
-    <p>Votre espace étudiant</p>
 
-    <section id="auth">
-      <input id="name" placeholder="Nom complet (inscription)">
-      <input id="email" type="email" placeholder="Adresse e-mail">
-      <input id="password" type="password" placeholder="Mot de passe">
+<section class="auth-card" id="auth">
+ <h1 class="center">IIPEA Connect</h1>
+ <p class="center muted">Votre espace étudiant</p>
+ <div id="authFields">
+  <input id="name" placeholder="Nom complet (inscription)">
+  <input id="email" type="email" placeholder="Adresse e-mail">
+  <input id="password" type="password" placeholder="Mot de passe">
+  <button class="btn" id="signup">Créer un compte</button>
+  <button class="btn secondary" id="login">Se connecter</button>
+  <span class="link" id="forgotLink">Mot de passe oublié ?</span>
+ </div>
+ <div id="forgotSection" style="display:none">
+  <h2>Récupération du compte</h2>
+  <input id="forgotEmail" type="email" placeholder="Adresse e-mail">
+  <button class="btn" id="sendReset">Envoyer le lien</button>
+  <span class="link" id="backLogin">Retour à la connexion</span>
+ </div>
+ <div id="resetSection" style="display:none">
+  <h2>Nouveau mot de passe</h2>
+  <input id="newPassword" type="password" placeholder="Nouveau mot de passe">
+  <input id="confirmPassword" type="password" placeholder="Confirmer le mot de passe">
+  <button class="btn" id="savePassword">Enregistrer</button>
+ </div>
+ <p id="message" role="status"></p>
+</section>
 
-      <button id="signup">Créer un compte</button>
-      <button id="login" class="secondary">Se connecter</button>
-
-      <span class="link" id="forgotLink">Mot de passe oublié ?</span>
-    </section>
-
-    <section id="forgotSection">
-      <h2>Récupération du compte</h2>
-      <p>Entre ton adresse e-mail pour recevoir un lien de réinitialisation.</p>
-      <input id="forgotEmail" type="email" placeholder="Adresse e-mail">
-      <button id="sendReset">Envoyer le lien</button>
-      <span class="link" id="backLogin">Retour à la connexion</span>
-    </section>
-
-    <section id="resetSection">
-      <h2>Nouveau mot de passe</h2>
-      <p>Choisis ton nouveau mot de passe.</p>
-      <input id="newPassword" type="password" placeholder="Nouveau mot de passe">
-      <input id="confirmPassword" type="password" placeholder="Confirmer le mot de passe">
-      <button id="savePassword">Enregistrer le nouveau mot de passe</button>
-    </section>
-
-    <section id="dashboard">
-      <h2>Bienvenue !</h2>
-      <p id="welcome"></p>
-      <button id="logout">Se déconnecter</button>
-    </section>
-
-    <p id="message" role="status"></p>
+<div id="app">
+ <header>
+  <h2>IIPEA CONNECT</h2>
+  <span>ESPACE ÉTUDIANT</span>
+ </header>
+ <div class="layout">
+  <nav id="navigation">
+   <button data-page="home" class="active">🏠 Accueil</button>
+   <button data-page="profile">👤 Mon profil</button>
+   <button data-page="courses">📚 Mes cours</button>
+   <button data-page="schedule">📅 Emploi du temps</button>
+   <button data-page="grades">🎓 Mes notes</button>
+   <button data-page="news">📢 Annonces</button>
+   <button id="logout">↪ Déconnexion</button>
+  </nav>
+  <main>
+   <div id="pageContent"></div>
   </main>
+ </div>
+</div>
 
-  <script>
-    const SUPABASE_URL = "https://zjsivbfnunbefscxbgdq.supabase.co";
-    const SUPABASE_KEY = "sb_publishable_MoPsfEdKwe1KbsLW--Ldug__IUFh6UN";
+<script>
+const SUPABASE_URL="https://zjsivbfnunbefscxbgdq.supabase.co";
+const SUPABASE_KEY="sb_publishable_MoPsfEdKwe1KbsLW--Ldug__IUFh6UN";
+const client=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+const $=id=>document.getElementById(id);
+let currentUser=null;
 
-    const client = window.supabase.createClient(
-      SUPABASE_URL, SUPABASE_KEY
-    );
+function showMessage(t){$("message").textContent=t}
+function showAuth(section="authFields"){
+ $("auth").style.display="block";
+ $("app").style.display="none";
+ $("authFields").style.display=section==="authFields"?"block":"none";
+ $("forgotSection").style.display=section==="forgotSection"?"block":"none";
+ $("resetSection").style.display=section==="resetSection"?"block":"none";
+ showMessage("");
+}
 
-    const message = document.getElementById("message");
+function showApp(){
+ $("auth").style.display="none";
+ $("app").style.display="block";
+ openPage("home");
+}
 
-    function showSection(sectionId) {
-      ["auth", "forgotSection", "resetSection", "dashboard"]
-        .forEach(id => {
-          document.getElementById(id).style.display =
-            id === sectionId ? "block" : "none";
-        });
-      message.textContent = "";
-    }
+async function openPage(page){
+ document.querySelectorAll("#navigation button[data-page]").forEach(b=>{
+  b.classList.toggle("active",b.dataset.page===page);
+ });
+ const titles={
+  home:"Accueil",
+  profile:"Mon profil",
+  courses:"Mes cours",
+  schedule:"Emploi du temps",
+  grades:"Mes notes",
+  news:"Annonces"
+ };
+ const name=currentUser?.user_metadata?.full_name||"Étudiant";
+ let html="";
+ if(page==="home"){
+  html=`<section class="welcome">
+   <h1>Bienvenue sur IIPEA Connect !</h1>
+   <p style="color:white">Bonjour ${escapeHTML(name)}. Retrouvez votre espace étudiant.</p>
+  </section>
+  <h2>Mon espace</h2>
+  <div class="grid">
+   ${tile("👤","Mon profil","Consulter mes informations","profile")}
+   ${tile("📚","Mes cours","Accéder aux supports pédagogiques","courses")}
+   ${tile("📅","Emploi du temps","Consulter les horaires","schedule")}
+   ${tile("🎓","Mes notes","Consulter mes résultats","grades")}
+   ${tile("📢","Annonces","Actualités et informations","news")}
+  </div>`;
+ }else if(page==="profile"){
+  const {data}=await client.from("profiles").select("full_name,created_at").eq("id",currentUser.id).maybeSingle();
+  html=`<h2>Mon profil</h2><div class="panel">
+   <p><b>Nom complet :</b> ${escapeHTML(data?.full_name||name)}</p>
+   <p><b>Adresse e-mail :</b> ${escapeHTML(currentUser.email||"")}</p>
+   <p class="muted">Identifiant étudiant : ${escapeHTML(currentUser.id)}</p>
+  </div>`;
+ }else{
+  const descriptions={
+   courses:"Les supports de cours seront publiés ici par l'administration.",
+   schedule:"Ton emploi du temps sera affiché ici après sa publication.",
+   grades:"Tes résultats seront accessibles ici lorsque l'administration les aura publiés.",
+   news:"Les annonces officielles seront affichées ici."
+  };
+  const icons={courses:"📚",schedule:"📅",grades:"🎓",news:"📢"};
+  html=`<h2>${titles[page]}</h2><div class="panel">
+   <h3>${icons[page]} ${titles[page]}</h3>
+   <p class="muted">${descriptions[page]}</p>
+   <p class="muted">Aucune donnée disponible pour le moment.</p>
+  </div>`;
+ }
+ $("pageContent").innerHTML=html;
+}
+function tile(icon,title,desc,page){
+ return `<div class="tile"><div style="font-size:28px">${icon}</div><h3>${title}</h3><p class="muted">${desc}</p><button data-open="${page}">Ouvrir →</button></div>`;
+}
+function escapeHTML(value){
+ return String(value??"").replace(/[&<>"']/g,c=>({
+  "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+ }[c]));
+}
 
-    async function showUser(user) {
-      showSection("dashboard");
+$("navigation").addEventListener("click",e=>{
+ const button=e.target.closest("[data-page],[data-open]");
+ if(!button)return;
+ openPage(button.dataset.page||button.dataset.open);
+});
 
-      const { data, error } = await client
-        .from("profiles")
-        .upsert({
-          id: user.id,
-          full_name: user.user_metadata?.full_name || null
-        })
-        .select("full_name")
-        .single();
+$("signup").onclick=async()=>{
+ const full_name=$("name").value.trim();
+ const email=$("email").value.trim();
+ const password=$("password").value;
+ if(!full_name||!email||password.length<8){
+  showMessage("Remplis tous les champs. Mot de passe : 8 caractères minimum.");return;
+ }
+ showMessage("Création du compte...");
+ const {data,error}=await client.auth.signUp({
+  email,password,
+  options:{data:{full_name},emailRedirectTo:location.origin}
+ });
+ if(error){showMessage(error.message);return;}
+ if(data.session){
+  currentUser=data.user;
+  const {error:profileError}=await client.from("profiles").upsert({id:data.user.id,full_name});
+  if(profileError){showMessage("Compte créé, mais profil non enregistré : "+profileError.message);return;}
+  showApp();
+ }else showMessage("Compte créé ! Vérifie ton e-mail pour confirmer ton inscription.");
+};
 
-      document.getElementById("welcome").textContent =
-        "Bienvenue " + (data?.full_name || user.email);
-    }
+$("login").onclick=async()=>{
+ showMessage("Connexion...");
+ const {data,error}=await client.auth.signInWithPassword({
+  email:$("email").value.trim(),password:$("password").value
+ });
+ if(error){showMessage(error.message);return;}
+ currentUser=data.user;showApp();
+};
 
-    document.getElementById("signup").onclick = async () => {
-      const fullName = document.getElementById("name").value.trim();
-      const email = document.getElementById("email").value.trim();
-      const password = document.getElementById("password").value;
+$("forgotLink").onclick=()=>{
+ $("forgotEmail").value=$("email").value.trim();
+ showAuth("forgotSection");
+};
+$("backLogin").onclick=()=>showAuth();
 
-      if (!fullName || !email || password.length < 8) {
-        message.textContent =
-          "Remplis tous les champs. Mot de passe : 8 caractères minimum.";
-        return;
-      }
+$("sendReset").onclick=async()=>{
+ const email=$("forgotEmail").value.trim();
+ if(!email){showMessage("Entre ton adresse e-mail.");return;}
+ showMessage("Envoi en cours...");
+ const {error}=await client.auth.resetPasswordForEmail(email,{redirectTo:location.origin});
+ showMessage(error?error.message:"Si cette adresse correspond à un compte, un lien sera envoyé. Vérifie tes e-mails.");
+};
 
-      message.textContent = "Création du compte...";
+$("savePassword").onclick=async()=>{
+ const password=$("newPassword").value;
+ if(password.length<8){showMessage("8 caractères minimum.");return;}
+ if(password!==$("confirmPassword").value){showMessage("Les mots de passe ne correspondent pas.");return;}
+ const {error}=await client.auth.updateUser({password});
+ if(error){showMessage(error.message);return;}
+ showAuth();showMessage("Mot de passe modifié avec succès !");
+};
 
-      const { data, error } = await client.auth.signUp({
-        email,
-        password,
-        options: {
-          data: { full_name: fullName },
-          emailRedirectTo: window.location.origin
-        }
-      });
+$("logout").onclick=async()=>{
+ const {error}=await client.auth.signOut();
+ if(error){showMessage(error.message);return;}
+ currentUser=null;showAuth();
+};
 
-      if (error) {
-        message.textContent = error.message;
-        return;
-      }
-
-      if (data.session) {
-        await showUser(data.user);
-      } else {
-        message.textContent =
-          "Compte créé ! Consulte ton e-mail pour confirmer ton inscription.";
-      }
-    };
-
-    document.getElementById("login").onclick = async () => {
-      const email = document.getElementById("email").value.trim();
-      const password = document.getElementById("password").value;
-
-      message.textContent = "Connexion...";
-
-      const { data, error } = await client.auth.signInWithPassword({
-        email, password
-      });
-
-      if (error) {
-        message.textContent = error.message;
-        return;
-      }
-
-      await showUser(data.user);
-    };
-
-    document.getElementById("forgotLink").onclick = () => {
-      document.getElementById("forgotEmail").value =
-        document.getElementById("email").value.trim();
-      showSection("forgotSection");
-    };
-
-    document.getElementById("backLogin").onclick = () => {
-      showSection("auth");
-    };
-
-    document.getElementById("sendReset").onclick = async () => {
-      const email = document.getElementById("forgotEmail").value.trim();
-
-      if (!email) {
-        message.textContent = "Entre ton adresse e-mail.";
-        return;
-      }
-
-      message.textContent = "Envoi en cours...";
-
-      const { error } = await client.auth.resetPasswordForEmail(email, {
-        redirectTo: window.location.origin
-      });
-
-      message.textContent = error
-        ? error.message
-        : "Si cette adresse correspond à un compte, un lien de réinitialisation sera envoyé. Vérifie ta boîte mail.";
-    };
-
-    document.getElementById("savePassword").onclick = async () => {
-      const password = document.getElementById("newPassword").value;
-      const confirmation = document.getElementById("confirmPassword").value;
-
-      if (password.length < 8) {
-        message.textContent =
-          "Le mot de passe doit contenir au moins 8 caractères.";
-        return;
-      }
-
-      if (password !== confirmation) {
-        message.textContent = "Les deux mots de passe ne correspondent pas.";
-        return;
-      }
-
-      const { error } = await client.auth.updateUser({ password });
-
-      if (error) {
-        message.textContent = error.message;
-        return;
-      }
-
-      message.textContent = "Mot de passe modifié avec succès !";
-      showSection("auth");
-    };
-
-    document.getElementById("logout").onclick = async () => {
-      const { error } = await client.auth.signOut();
-
-      if (error) {
-        message.textContent = error.message;
-        return;
-      }
-
-      showSection("auth");
-      message.textContent = "Déconnexion réussie.";
-    };
-
-    client.auth.onAuthStateChange((event, session) => {
-      if (event === "PASSWORD_RECOVERY") {
-        showSection("resetSection");
-      } else if (event === "SIGNED_IN" && session) {
-        showUser(session.user);
-      } else if (event === "SIGNED_OUT") {
-        showSection("auth");
-      } else if (event === "INITIAL_SESSION" && session) {
-        showUser(session.user);
-      }
-    });
-  </script>
+client.auth.onAuthStateChange((event,session)=>{
+ if(event==="PASSWORD_RECOVERY"){showAuth("resetSection");}
+ else if((event==="SIGNED_IN"||event==="INITIAL_SESSION")&&session){
+  currentUser=session.user;showApp();
+ }else if(event==="SIGNED_OUT"){
+  currentUser=null;showAuth();
+ }
+});
+</script>
 </body>
 </html>
