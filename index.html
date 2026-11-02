@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -18,7 +19,7 @@
       padding: 28px; border-radius: 18px;
       box-shadow: 0 12px 35px #0003;
     }
-    h1 { color: #12345a; text-align: center; }
+    h1, h2 { color: #12345a; text-align: center; }
     p { color: #64748b; text-align: center; }
     input, button {
       width: 100%; padding: 14px; margin-top: 12px;
@@ -30,8 +31,12 @@
       font-weight: bold; cursor: pointer;
     }
     button.secondary { background: #e8eef4; color: #12345a; }
+    .link {
+      display: block; margin-top: 16px; text-align: center;
+      color: #145b83; cursor: pointer; text-decoration: underline;
+    }
     #message { font-size: 14px; margin-top: 15px; }
-    #dashboard { display: none; }
+    #dashboard, #resetSection, #forgotSection { display: none; }
   </style>
 </head>
 <body>
@@ -46,7 +51,24 @@
 
       <button id="signup">Créer un compte</button>
       <button id="login" class="secondary">Se connecter</button>
-      <p id="message"></p>
+
+      <span class="link" id="forgotLink">Mot de passe oublié ?</span>
+    </section>
+
+    <section id="forgotSection">
+      <h2>Récupération du compte</h2>
+      <p>Entre ton adresse e-mail pour recevoir un lien de réinitialisation.</p>
+      <input id="forgotEmail" type="email" placeholder="Adresse e-mail">
+      <button id="sendReset">Envoyer le lien</button>
+      <span class="link" id="backLogin">Retour à la connexion</span>
+    </section>
+
+    <section id="resetSection">
+      <h2>Nouveau mot de passe</h2>
+      <p>Choisis ton nouveau mot de passe.</p>
+      <input id="newPassword" type="password" placeholder="Nouveau mot de passe">
+      <input id="confirmPassword" type="password" placeholder="Confirmer le mot de passe">
+      <button id="savePassword">Enregistrer le nouveau mot de passe</button>
     </section>
 
     <section id="dashboard">
@@ -54,6 +76,8 @@
       <p id="welcome"></p>
       <button id="logout">Se déconnecter</button>
     </section>
+
+    <p id="message" role="status"></p>
   </main>
 
   <script>
@@ -66,15 +90,26 @@
 
     const message = document.getElementById("message");
 
-    async function showUser(user) {
-      document.getElementById("auth").style.display = "none";
-      document.getElementById("dashboard").style.display = "block";
+    function showSection(sectionId) {
+      ["auth", "forgotSection", "resetSection", "dashboard"]
+        .forEach(id => {
+          document.getElementById(id).style.display =
+            id === sectionId ? "block" : "none";
+        });
+      message.textContent = "";
+    }
 
-      const { data } = await client
+    async function showUser(user) {
+      showSection("dashboard");
+
+      const { data, error } = await client
         .from("profiles")
+        .upsert({
+          id: user.id,
+          full_name: user.user_metadata?.full_name || null
+        })
         .select("full_name")
-        .eq("id", user.id)
-        .maybeSingle();
+        .single();
 
       document.getElementById("welcome").textContent =
         "Bienvenue " + (data?.full_name || user.email);
@@ -86,17 +121,19 @@
       const password = document.getElementById("password").value;
 
       if (!fullName || !email || password.length < 8) {
-        message.textContent = "Remplissez tous les champs. Mot de passe : 8 caractères minimum.";
+        message.textContent =
+          "Remplis tous les champs. Mot de passe : 8 caractères minimum.";
         return;
       }
 
       message.textContent = "Création du compte...";
 
       const { data, error } = await client.auth.signUp({
-        email, password,
+        email,
+        password,
         options: {
           data: { full_name: fullName },
-          emailRedirectTo: "https://iipea-connect.vercel.app"
+          emailRedirectTo: window.location.origin
         }
       });
 
@@ -105,18 +142,11 @@
         return;
       }
 
-      if (data.user && data.session) {
-        const { error: profileError } = await client
-          .from("profiles")
-          .upsert({ id: data.user.id, full_name: fullName });
-
-        if (profileError) {
-          message.textContent = "Compte créé, mais profil non enregistré : " + profileError.message;
-          return;
-        }
+      if (data.session) {
         await showUser(data.user);
       } else {
-        message.textContent = "Compte créé ! Consultez votre e-mail pour confirmer votre inscription.";
+        message.textContent =
+          "Compte créé ! Consulte ton e-mail pour confirmer ton inscription.";
       }
     };
 
@@ -125,6 +155,7 @@
       const password = document.getElementById("password").value;
 
       message.textContent = "Connexion...";
+
       const { data, error } = await client.auth.signInWithPassword({
         email, password
       });
@@ -133,18 +164,87 @@
         message.textContent = error.message;
         return;
       }
+
       await showUser(data.user);
     };
 
+    document.getElementById("forgotLink").onclick = () => {
+      document.getElementById("forgotEmail").value =
+        document.getElementById("email").value.trim();
+      showSection("forgotSection");
+    };
+
+    document.getElementById("backLogin").onclick = () => {
+      showSection("auth");
+    };
+
+    document.getElementById("sendReset").onclick = async () => {
+      const email = document.getElementById("forgotEmail").value.trim();
+
+      if (!email) {
+        message.textContent = "Entre ton adresse e-mail.";
+        return;
+      }
+
+      message.textContent = "Envoi en cours...";
+
+      const { error } = await client.auth.resetPasswordForEmail(email, {
+        redirectTo: window.location.origin
+      });
+
+      message.textContent = error
+        ? error.message
+        : "Si cette adresse correspond à un compte, un lien de réinitialisation sera envoyé. Vérifie ta boîte mail.";
+    };
+
+    document.getElementById("savePassword").onclick = async () => {
+      const password = document.getElementById("newPassword").value;
+      const confirmation = document.getElementById("confirmPassword").value;
+
+      if (password.length < 8) {
+        message.textContent =
+          "Le mot de passe doit contenir au moins 8 caractères.";
+        return;
+      }
+
+      if (password !== confirmation) {
+        message.textContent = "Les deux mots de passe ne correspondent pas.";
+        return;
+      }
+
+      const { error } = await client.auth.updateUser({ password });
+
+      if (error) {
+        message.textContent = error.message;
+        return;
+      }
+
+      message.textContent = "Mot de passe modifié avec succès !";
+      showSection("auth");
+    };
+
     document.getElementById("logout").onclick = async () => {
-      await client.auth.signOut();
-      document.getElementById("dashboard").style.display = "none";
-      document.getElementById("auth").style.display = "block";
+      const { error } = await client.auth.signOut();
+
+      if (error) {
+        message.textContent = error.message;
+        return;
+      }
+
+      showSection("auth");
       message.textContent = "Déconnexion réussie.";
     };
 
-    client.auth.getSession().then(({ data }) => {
-      if (data.session) showUser(data.session.user);
+    client.auth.onAuthStateChange((event, session) => {
+      if (event === "PASSWORD_RECOVERY") {
+        showSection("resetSection");
+      } else if (event === "SIGNED_IN" && session) {
+        showUser(session.user);
+      } else if (event === "SIGNED_OUT") {
+        showSection("auth");
+      } else if (event === "INITIAL_SESSION" && session) {
+        showUser(session.user);
+      }
     });
   </script>
 </body>
