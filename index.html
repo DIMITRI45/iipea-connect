@@ -12,13 +12,15 @@ body{margin:0;font-family:Arial,sans-serif;background:#f1f5f9;color:#172554}
 header{background:#123b72;color:white;padding:22px;text-align:center}
 main{max-width:900px;margin:25px auto;padding:15px}
 .card{background:white;padding:22px;border-radius:14px;margin-bottom:18px;box-shadow:0 3px 12px #0001}
-input,button{width:100%;padding:13px;margin:7px 0;border-radius:8px;border:1px solid #cbd5e1}
+input,textarea,button{width:100%;padding:13px;margin:7px 0;border-radius:8px;border:1px solid #cbd5e1}
 button{background:#1556a0;color:white;border:0;font-weight:bold;cursor:pointer}
 nav{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
 nav button{background:#e5efff;color:#123b72}
 .hidden{display:none}
 h2{color:#123b72}
 #message{padding:10px;color:#b91c1c}
+.course{border:1px solid #dbeafe;padding:15px;border-radius:10px;margin:12px 0}
+.course a{color:#1556a0;font-weight:bold}
 </style>
 </head>
 <body>
@@ -26,7 +28,6 @@ h2{color:#123b72}
 <h1>IIPEA CONNECT</h1>
 <p>Votre espace étudiant</p>
 </header>
-
 <main>
 <div id="auth">
 <section class="card">
@@ -35,7 +36,6 @@ h2{color:#123b72}
 <input id="loginPassword" type="password" placeholder="Mot de passe">
 <button onclick="login()">Se connecter</button>
 </section>
-
 <section class="card">
 <h2>Créer un compte</h2>
 <input id="name" placeholder="Nom complet">
@@ -43,7 +43,6 @@ h2{color:#123b72}
 <input id="signupPassword" type="password" placeholder="Mot de passe">
 <button onclick="signup()">Créer mon compte</button>
 </section>
-
 <section class="card">
 <h2>Mot de passe oublié ?</h2>
 <input id="resetEmail" type="email" placeholder="Votre adresse e-mail">
@@ -56,7 +55,6 @@ h2{color:#123b72}
 <h2 id="welcome">Bienvenue !</h2>
 <p id="emailDisplay"></p>
 </section>
-
 <section class="card">
 <nav>
 <button onclick="showSection('home')">Accueil</button>
@@ -83,7 +81,7 @@ h2{color:#123b72}
 
 <section id="courses" class="card hidden">
 <h2>Mes cours</h2>
-<p>Aucune donnée disponible pour le moment.</p>
+<div id="courseList">Chargement des cours...</div>
 </section>
 
 <section id="schedule" class="card hidden">
@@ -103,107 +101,170 @@ h2{color:#123b72}
 
 <section id="admin" class="card hidden">
 <h2>Espace administrateur</h2>
-<p>Bienvenue dans l'espace de gestion.</p>
-<p>Les outils de publication des cours, emplois du temps, notes et annonces seront activés après la création des tables et des politiques de sécurité correspondantes dans Supabase.</p>
+<p>Gestion des supports de cours</p>
+<input id="courseTitle" placeholder="Titre du cours">
+<input id="courseSubject" placeholder="Matière">
+<textarea id="courseDescription" placeholder="Description du cours"></textarea>
+<label for="courseFile">Choisir un fichier PDF</label>
+<input id="courseFile" type="file" accept="application/pdf">
+<button onclick="uploadCourse()">Publier le cours</button>
+<p id="uploadMessage"></p>
 </section>
 </div>
-
 <div id="message"></div>
 </main>
 
 <script>
-const SUPABASE_URL = "https://zjsivbfnunbefscxbgdq.supabase.co";
-const SUPABASE_KEY = "sb_publishable_MoPsfEdKwe1KbsLW--Ldug__IUFh6UN";
-const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const SUPABASE_URL="https://zjsivbfnunbefscxbgdq.supabase.co";
+const SUPABASE_KEY="sb_publishable_MoPsfEdKwe1KbsLW--Ldug__IUFh6UN";
+const db=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 
-let currentUser = null;
+let currentUser=null;
+let isAdmin=false;
 
 function message(text){
- document.getElementById("message").textContent = text;
+ document.getElementById("message").textContent=text;
 }
 
 async function signup(){
- const full_name = document.getElementById("name").value.trim();
- const email = document.getElementById("signupEmail").value.trim();
- const password = document.getElementById("signupPassword").value;
-
- if(!full_name || !email || !password){
-  message("Remplis tous les champs.");
-  return;
- }
-
- const {data,error} = await db.auth.signUp({
-  email,password,
-  options:{data:{full_name}}
+ const full_name=document.getElementById("name").value.trim();
+ const email=document.getElementById("signupEmail").value.trim();
+ const password=document.getElementById("signupPassword").value;
+ if(!full_name||!email||!password){message("Remplis tous les champs.");return;}
+ const {data,error}=await db.auth.signUp({
+  email,password,options:{data:{full_name}}
  });
-
  if(error){message(error.message);return;}
-
- if(data.user && data.session){
-  const {error:profileError} = await db.from("profiles").upsert({
-   id:data.user.id,
-   full_name
+ if(data.user&&data.session){
+  const {error:e}=await db.from("profiles").upsert({
+   id:data.user.id,full_name
   });
-  if(profileError) message(profileError.message);
+  if(e)message(e.message);
   else message("Compte créé avec succès.");
- }else{
-  message("Vérifie ta boîte e-mail pour confirmer ton inscription.");
- }
+ }else message("Vérifie ta boîte e-mail pour confirmer ton inscription.");
 }
 
 async function login(){
- const email = document.getElementById("loginEmail").value.trim();
- const password = document.getElementById("loginPassword").value;
-
- const {data,error} = await db.auth.signInWithPassword({email,password});
+ const email=document.getElementById("loginEmail").value.trim();
+ const password=document.getElementById("loginPassword").value;
+ const {data,error}=await db.auth.signInWithPassword({email,password});
  if(error){message(error.message);return;}
  await loadDashboard(data.user);
 }
 
 async function resetPassword(){
- const email = document.getElementById("resetEmail").value.trim();
+ const email=document.getElementById("resetEmail").value.trim();
  if(!email){message("Entre ton adresse e-mail.");return;}
-
- const {error} = await db.auth.resetPasswordForEmail(email,{
-  redirectTo:location.origin
- });
- message(error ? error.message : "Consulte ta boîte e-mail.");
+ const {error}=await db.auth.resetPasswordForEmail(email,{redirectTo:location.origin});
+ message(error?error.message:"Consulte ta boîte e-mail.");
 }
 
 async function loadDashboard(user){
  if(!user)return;
- currentUser = user;
-
- const {data:profile} = await db.from("profiles")
+ currentUser=user;
+ const {data:profile}=await db.from("profiles")
   .select("full_name").eq("id",user.id).maybeSingle();
 
  document.getElementById("auth").classList.add("hidden");
  document.getElementById("dashboard").classList.remove("hidden");
- document.getElementById("welcome").textContent =
-  "Bienvenue " + (profile?.full_name || user.email);
- document.getElementById("emailDisplay").textContent = user.email;
- document.getElementById("profileName").textContent =
-  "Nom : " + (profile?.full_name || "Non renseigné");
- document.getElementById("profileEmail").textContent =
-  "E-mail : " + user.email;
+ document.getElementById("welcome").textContent="Bienvenue "+(profile?.full_name||user.email);
+ document.getElementById("emailDisplay").textContent=user.email;
+ document.getElementById("profileName").textContent="Nom : "+(profile?.full_name||"Non renseigné");
+ document.getElementById("profileEmail").textContent="E-mail : "+user.email;
 
- const {data:admin,error} = await db.rpc("is_admin");
-
- const adminButton = document.getElementById("adminButton");
- adminButton.classList.toggle("hidden",!!error || admin !== true);
+ const {data:admin,error}=await db.rpc("is_admin");
+ isAdmin=!error&&admin===true;
+ document.getElementById("adminButton").classList.toggle("hidden",!isAdmin);
+ document.getElementById("admin").classList.add("hidden");
+ await loadCourses();
  showSection("home");
 }
 
 function showSection(id){
- const sections = ["home","profile","courses","schedule","grades","announcements","admin"];
- sections.forEach(section=>{
-  document.getElementById(section).classList.toggle("hidden",section!==id);
+ if(id==="admin"&&!isAdmin){message("Accès réservé aux administrateurs.");return;}
+ ["home","profile","courses","schedule","grades","announcements","admin"].forEach(s=>{
+  document.getElementById(s).classList.toggle("hidden",s!==id);
  });
+ if(id==="courses")loadCourses();
+}
+
+async function uploadCourse(){
+ if(!isAdmin){message("Accès refusé.");return;}
+ const title=document.getElementById("courseTitle").value.trim();
+ const subject=document.getElementById("courseSubject").value.trim();
+ const description=document.getElementById("courseDescription").value.trim();
+ const file=document.getElementById("courseFile").files[0];
+ const status=document.getElementById("uploadMessage");
+
+ if(!title||!subject||!file){status.textContent="Remplis le titre, la matière et choisis un PDF.";return;}
+ if(file.type!=="application/pdf"){status.textContent="Seuls les fichiers PDF sont autorisés.";return;}
+ if(file.size>20*1024*1024){status.textContent="Le fichier dépasse la limite de 20 MB.";return;}
+
+ status.textContent="Importation en cours...";
+ const safeName=file.name.replace(/[^a-zA-Z0-9._-]/g,"_");
+ const path=currentUser.id+"/"+Date.now()+"_"+safeName;
+
+ const {error:uploadError}=await db.storage.from("cours-pdf").upload(path,file,{
+  contentType:"application/pdf",
+  upsert:false
+ });
+ if(uploadError){status.textContent=uploadError.message;return;}
+
+ const {error:insertError}=await db.from("courses").insert({
+  title,subject,description,file_path:path
+ });
+ if(insertError){
+  await db.storage.from("cours-pdf").remove([path]);
+  status.textContent=insertError.message;
+  return;
+ }
+
+ status.textContent="Cours publié avec succès !";
+ document.getElementById("courseTitle").value="";
+ document.getElementById("courseSubject").value="";
+ document.getElementById("courseDescription").value="";
+ document.getElementById("courseFile").value="";
+ await loadCourses();
+}
+
+async function loadCourses(){
+ const list=document.getElementById("courseList");
+ list.textContent="Chargement des cours...";
+ const {data,error}=await db.from("courses")
+  .select("id,title,subject,description,file_path,created_at")
+  .order("created_at",{ascending:false});
+
+ if(error){list.textContent="Erreur : "+error.message;return;}
+ if(!data||data.length===0){list.textContent="Aucun cours publié pour le moment.";return;}
+
+ list.innerHTML="";
+ for(const course of data){
+  const item=document.createElement("div");
+  item.className="course";
+  const title=document.createElement("h3");
+  title.textContent=course.title;
+  const subject=document.createElement("p");
+  subject.textContent="Matière : "+course.subject;
+  const description=document.createElement("p");
+  description.textContent=course.description||"";
+  const link=document.createElement("button");
+  link.textContent="Consulter le PDF";
+  link.onclick=()=>openCourse(course.file_path);
+  item.append(title,subject,description,link);
+  list.appendChild(item);
+ }
+}
+
+async function openCourse(path){
+ const {data,error}=await db.storage.from("cours-pdf").createSignedUrl(path,300);
+ if(error){message(error.message);return;}
+ window.open(data.signedUrl,"_blank");
 }
 
 async function logout(){
  await db.auth.signOut();
- currentUser = null;
+ currentUser=null;
+ isAdmin=false;
  document.getElementById("dashboard").classList.add("hidden");
  document.getElementById("auth").classList.remove("hidden");
  message("Déconnexion réussie.");
@@ -213,7 +274,8 @@ db.auth.onAuthStateChange((event,session)=>{
  if(session?.user){
   loadDashboard(session.user);
  }else{
-  currentUser = null;
+  currentUser=null;
+  isAdmin=false;
   document.getElementById("dashboard").classList.add("hidden");
   document.getElementById("auth").classList.remove("hidden");
  }
