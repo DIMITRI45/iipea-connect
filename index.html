@@ -1,125 +1,151 @@
-
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="theme-color" content="#102b50">
-<title>Connexion - IIPEA Connect</title>
-<style>
-*{box-sizing:border-box}
-body{
- margin:0;
- font-family:Arial,sans-serif;
- background:#f1f5fa;
- color:#17243a;
- min-height:100vh;
- display:flex;
- flex-direction:column;
-}
-header{
- background:#102b50;
- color:white;
- padding:22px;
- text-align:center;
-}
-header h1{margin:0;font-size:26px}
-header p{margin:7px 0 0;color:#d6e3f5}
-main{
- flex:1;
- display:flex;
- align-items:center;
- justify-content:center;
- padding:25px 16px;
-}
-.login{
- background:white;
- width:100%;
- max-width:420px;
- padding:30px 24px;
- border-radius:18px;
- box-shadow:0 8px 30px #102b5015;
-}
-.logo{
- width:65px;
- height:65px;
- margin:0 auto 15px;
- border-radius:18px;
- background:#102b50;
- color:white;
- display:flex;
- align-items:center;
- justify-content:center;
- font-size:25px;
- font-weight:bold;
-}
-h2{text-align:center;margin:0 0 8px;color:#102b50}
-.subtitle{text-align:center;color:#718096;font-size:14px;margin-bottom:28px}
-label{display:block;font-weight:bold;font-size:14px;margin:17px 0 8px}
-input{
- width:100%;
- padding:14px;
- border:1px solid #d5deea;
- border-radius:9px;
- font-size:15px;
- outline:none;
-}
-input:focus{border-color:#245b94}
-button{
- width:100%;
- padding:15px;
- margin-top:24px;
- border:0;
- border-radius:9px;
- background:#102b50;
- color:white;
- font-size:16px;
- font-weight:bold;
- cursor:pointer;
-}
-button:hover{background:#1b4677}
-.help{text-align:center;margin-top:20px;font-size:13px;color:#53657b}
-footer{text-align:center;padding:20px;color:#718096;font-size:12px}
-#message{font-size:13px;text-align:center;margin-top:15px;color:#b45309}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IIPEA Connect</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; min-height: 100vh; display: grid;
+      place-items: center; padding: 20px;
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, #102b50, #176b87);
+    }
+    .card {
+      width: 100%; max-width: 410px; background: white;
+      padding: 28px; border-radius: 18px;
+      box-shadow: 0 12px 35px #0003;
+    }
+    h1 { color: #12345a; text-align: center; }
+    p { color: #64748b; text-align: center; }
+    input, button {
+      width: 100%; padding: 14px; margin-top: 12px;
+      border-radius: 9px; font-size: 16px;
+    }
+    input { border: 1px solid #cbd5e1; }
+    button {
+      border: 0; background: #145b83; color: white;
+      font-weight: bold; cursor: pointer;
+    }
+    button.secondary { background: #e8eef4; color: #12345a; }
+    #message { font-size: 14px; margin-top: 15px; }
+    #dashboard { display: none; }
+  </style>
 </head>
 <body>
-<header>
-<h1>IIPEA Connect</h1>
-<p>Votre espace numérique étudiant</p>
-</header>
+  <main class="card">
+    <h1>IIPEA Connect</h1>
+    <p>Votre espace étudiant</p>
 
-<main>
-<div class="login">
-<div class="logo">I</div>
-<h2>Bienvenue !</h2>
-<p class="subtitle">Connectez-vous à votre espace étudiant</p>
+    <section id="auth">
+      <input id="name" placeholder="Nom complet (inscription)">
+      <input id="email" type="email" placeholder="Adresse e-mail">
+      <input id="password" type="password" placeholder="Mot de passe">
 
-<form id="loginForm">
-<label for="email">Adresse e-mail</label>
-<input type="email" id="email" placeholder="exemple@email.com" required>
+      <button id="signup">Créer un compte</button>
+      <button id="login" class="secondary">Se connecter</button>
+      <p id="message"></p>
+    </section>
 
-<label for="password">Mot de passe</label>
-<input type="password" id="password" placeholder="Votre mot de passe" required>
+    <section id="dashboard">
+      <h2>Bienvenue !</h2>
+      <p id="welcome"></p>
+      <button id="logout">Se déconnecter</button>
+    </section>
+  </main>
 
-<button type="submit">Se connecter</button>
-<p id="message"></p>
-</form>
+  <script>
+    const SUPABASE_URL = "https://zjsivbfnunbefscxbgdq.supabase.co";
+    const SUPABASE_KEY = "sb_publishable_MoPsfEdKwe1KbsLW--Ldug__IUFh6UN";
 
-<p class="help">Besoin d'aide ? Contactez l'administration de votre établissement.</p>
-</div>
-</main>
+    const client = window.supabase.createClient(
+      SUPABASE_URL, SUPABASE_KEY
+    );
 
-<footer>
-IIPEA Connect · Espace étudiant
-</footer>
+    const message = document.getElementById("message");
 
-<script>
-document.getElementById("loginForm").addEventListener("submit",function(event){
- event.preventDefault();
- document.getElementById("message").textContent =
- "La connexion sera disponible après la configuration du système sécurisé.";
-});
-</script>
+    async function showUser(user) {
+      document.getElementById("auth").style.display = "none";
+      document.getElementById("dashboard").style.display = "block";
+
+      const { data } = await client
+        .from("profiles")
+        .select("full_name")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      document.getElementById("welcome").textContent =
+        "Bienvenue " + (data?.full_name || user.email);
+    }
+
+    document.getElementById("signup").onclick = async () => {
+      const fullName = document.getElementById("name").value.trim();
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value;
+
+      if (!fullName || !email || password.length < 8) {
+        message.textContent = "Remplissez tous les champs. Mot de passe : 8 caractères minimum.";
+        return;
+      }
+
+      message.textContent = "Création du compte...";
+
+      const { data, error } = await client.auth.signUp({
+        email, password,
+        options: {
+          data: { full_name: fullName },
+          emailRedirectTo: "https://iipea-connect.vercel.app"
+        }
+      });
+
+      if (error) {
+        message.textContent = error.message;
+        return;
+      }
+
+      if (data.user && data.session) {
+        const { error: profileError } = await client
+          .from("profiles")
+          .upsert({ id: data.user.id, full_name: fullName });
+
+        if (profileError) {
+          message.textContent = "Compte créé, mais profil non enregistré : " + profileError.message;
+          return;
+        }
+        await showUser(data.user);
+      } else {
+        message.textContent = "Compte créé ! Consultez votre e-mail pour confirmer votre inscription.";
+      }
+    };
+
+    document.getElementById("login").onclick = async () => {
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value;
+
+      message.textContent = "Connexion...";
+      const { data, error } = await client.auth.signInWithPassword({
+        email, password
+      });
+
+      if (error) {
+        message.textContent = error.message;
+        return;
+      }
+      await showUser(data.user);
+    };
+
+    document.getElementById("logout").onclick = async () => {
+      await client.auth.signOut();
+      document.getElementById("dashboard").style.display = "none";
+      document.getElementById("auth").style.display = "block";
+      message.textContent = "Déconnexion réussie.";
+    };
+
+    client.auth.getSession().then(({ data }) => {
+      if (data.session) showUser(data.session.user);
+    });
+  </script>
 </body>
 </html>
